@@ -23,6 +23,7 @@ async function main() {
   app.use(express.json());
 
   // routes WITHOUT /api
+  // app.use('/*',(req,res,next)=>{console.log("Request : ", req); next();})
   app.use('/auth', authRouter);
   app.use('/users', usersRouter);
   app.use("/keys", keysRouter);
