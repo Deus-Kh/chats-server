@@ -159,32 +159,3 @@ keysRouter.get('/bundle/:userId', requireAuth, async (req: AuthedRequest, res) =
       : null,
   });
 });
-
-// GET /keys/prekeys/unused-count  (JWT)
-keysRouter.get('/prekeys/unused-count', requireAuth, async (req: AuthedRequest, res) => {
-  const unused = await OneTimePreKeyModel.countDocuments({
-    userId: req.userId,
-    used: false,
-  });
-
-  return res.json({ unused });
-});
-
-keysRouter.post('/identity-dh', requireAuth, async (req: AuthedRequest, res) => {
-  const { identityDhPublicKey } = req.body as { identityDhPublicKey?: string };
-
-  if (!identityDhPublicKey) {
-    return res.status(400).json({ error: 'identityDhPublicKey is required' });
-  }
-
-  if (typeof identityDhPublicKey !== 'string' || identityDhPublicKey.length < 20) {
-    return res.status(400).json({ error: 'Invalid identityDhPublicKey format' });
-  }
-
-  await UserModel.updateOne(
-    { _id: req.userId },
-    { $set: { identityDhPublicKey, identityDhUpdatedAt: new Date() } }
-  );
-
-  return res.json({ ok: true });
-});
