@@ -152,3 +152,13 @@ keysRouter.get('/bundle/:userId', requireAuth, async (req: AuthedRequest, res) =
       : null,
   });
 });
+
+// GET /keys/prekeys/unused-count  (JWT)
+keysRouter.get('/prekeys/unused-count', requireAuth, async (req: AuthedRequest, res) => {
+  const unused = await OneTimePreKeyModel.countDocuments({
+    userId: req.userId,
+    used: false,
+  });
+
+  return res.json({ unused });
+});
