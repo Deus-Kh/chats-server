@@ -119,11 +119,17 @@ keysRouter.get('/bundle/:userId', requireAuth, async (req: AuthedRequest, res) =
   const peerUserId = req.params.userId;
 
   // 1) peer identity key (Ed25519 pub) from User
-  const peer = await UserModel.findById(peerUserId).select('identitySignPublicKey');
+  // const peer = await UserModel.findById(peerUserId).select('identitySignPublicKey');
+  const peer = await UserModel.findById(peerUserId).select('identitySignPublicKey identityDhPublicKey');
+
   if (!peer) return res.status(404).json({ error: 'User not found' });
   if (!peer.identitySignPublicKey) {
     return res.status(404).json({ error: 'Identity key not set' });
   }
+  if (!peer.identityDhPublicKey) {
+  return res.status(404).json({ error: 'Identity DH key not set' });
+}
+
 
   // 2) latest signed prekey
   const signed = await SignedPreKeyModel.findOne({ userId: peerUserId })
@@ -142,6 +148,7 @@ keysRouter.get('/bundle/:userId', requireAuth, async (req: AuthedRequest, res) =
   return res.json({
     userId: peerUserId,
     identitySignPublicKey: peer.identitySignPublicKey,
+    identityDhPublicKey: peer.identityDhPublicKey,
     signedPreKey: {
       keyId: signed.keyId,
       publicKey: signed.publicKey,
@@ -151,4 +158,33 @@ keysRouter.get('/bundle/:userId', requireAuth, async (req: AuthedRequest, res) =
       ? { keyId: oneTime.keyId, publicKey: oneTime.publicKey }
       : null,
   });
+});
+
+// GET /keys/prekeys/unused-count  (JWT)
+keysRouter.get('/prekeys/unused-count', requireAuth, async (req: AuthedRequest, res) => {
+  const unused = await OneTimePreKeyModel.countDocuments({
+    userId: req.userId,
+    used: false,
+  });
+
+  return res.json({ unused });
+});
+
+keysRouter.post('/identity-dh', requireAuth, async (req: AuthedRequest, res) => {
+  const { identityDhPublicKey } = req.body as { identityDhPublicKey?: string };
+
+  if (!identityDhPublicKey) {
+    return res.status(400).json({ error: 'identityDhPublicKey is required' });
+  }
+
+  if (typeof identityDhPublicKey !== 'string' || identityDhPublicKey.length < 20) {
+    return res.status(400).json({ error: 'Invalid identityDhPublicKey format' });
+  }
+
+  await UserModel.updateOne(
+    { _id: req.userId },
+    { $set: { identityDhPublicKey, identityDhUpdatedAt: new Date() } }
+  );
+
+  return res.json({ ok: true });
 });

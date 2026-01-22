@@ -13,6 +13,10 @@ const UserSchema = new Schema(
     identitySignPublicKey: { type: String, default: null, index: true },
     identitySignUpdatedAt: { type: Date, default: null },
 
+    identityDhPublicKey: { type: String, default: null, index: true },
+    identityDhUpdatedAt: { type: Date, default: null },
+
+
   },
   { timestamps: true }
 );
