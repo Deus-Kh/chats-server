@@ -53,7 +53,7 @@ const V2Schema = new Schema(
       n: { type: Number, required: true },
       pn: { type: Number, required: true },
       // позже (3.6) добавим dhPub
-      // dhPub: { type: String, required: false },
+      dhPub: { type: String, required: true },
     },
     nonce: { type: String, required: true },
     ciphertext: { type: String, required: true },
