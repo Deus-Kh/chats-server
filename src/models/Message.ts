@@ -61,6 +61,17 @@ const V2Schema = new Schema(
   { _id: false }
 );
 
+const InitPacketSchema = new Schema(
+  {
+    peerUserId: { type: String, required: true },
+    ephPublicKey: { type: String, required: true },
+    signedPreKeyId: { type: Number, required: true },
+    oneTimePreKeyId: { type: Number, default: null },
+    initiatorIdentityDhPublicKey: { type: String, required: true },
+  },
+  { _id: false }
+);
+
 const MessageSchema = new Schema(
   {
     fromUserId: { type: Types.ObjectId, ref: 'User', required: true, index: true },
@@ -74,6 +85,7 @@ const MessageSchema = new Schema(
 
     // v2 payload
     v2: { type: V2Schema, default: null },
+    initPacket: { type: InitPacketSchema, default: null },
 
     clientMessageId: { type: String, required: true },
     createdAtClient: { type: Number, required: true, index: true },

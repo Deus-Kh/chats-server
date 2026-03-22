@@ -116,6 +116,13 @@ type SendMessageDTO = {
   protoVersion?: 1 | 2;
   payload?: V1Payload | null; // v1
   v2?: V2Payload | null; // v2
+  initPacket?: {
+    peerUserId: string;
+    ephPublicKey: string;
+    signedPreKeyId: number;
+    oneTimePreKeyId: number | null;
+    initiatorIdentityDhPublicKey: string;
+  } | null;
 };
 
 function isNonEmptyString(v: unknown, minLen = 1): v is string {
@@ -266,6 +273,7 @@ export function setupSocket(io: Server) {
       protoVersion,
       payload: protoVersion === 1 ? dto.payload : null,
       v2: protoVersion === 2 ? dto.v2 : null,
+      initPacket: protoVersion === 2 ? dto.initPacket ?? null : null,
       clientMessageId: dto.clientMessageId,
       createdAtClient: dto.createdAt,
     });
@@ -287,6 +295,7 @@ export function setupSocket(io: Server) {
       protoVersion,
       payload: doc.payload,
       v2: doc.v2,
+      initPacket: (doc as any).initPacket ?? null,
       clientMessageId: dto.clientMessageId,
       createdAt: dto.createdAt,
     });
