@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { requireAuth, type AuthedRequest } from "../middleware/auth";
 import { MessageModel } from "../models/Message";
+import { makeConversationId } from "../utils/conversation";
 
 export const messagesRouter = Router();
 
@@ -16,16 +17,14 @@ messagesRouter.get(
   requireAuth,
   async (req: AuthedRequest, res) => {
     const me = req.userId!;
-    const peer = req.params.userId;
+    const peer = String(req.params.userId);
+    const conversationId = makeConversationId(me, peer);
 
     const limit = Math.min(Number(req.query.limit || 50), 200);
     const before = req.query.before ? Number(req.query.before) : null;
 
     const baseFilter: any = {
-      $or: [
-        { fromUserId: me, toUserId: peer },
-        { fromUserId: peer, toUserId: me },
-      ],
+      conversationId,
     };
 
     if (before && Number.isFinite(before)) {
@@ -33,9 +32,7 @@ messagesRouter.get(
     }
 
     const docs = await MessageModel.find(baseFilter)
-      // .select('_id fromUserId toUserId payload clientMessageId createdAtClient')
-      .select(
-        "_id fromUserId toUserId protoVersion payload v2 initPacket clientMessageId createdAtClient")
+      .select("_id conversationId fromUserId toUserId protoVersion v2 initPacket clientMessageId createdAtClient")
       .sort({ createdAtClient: -1 })
       .limit(limit);
 
@@ -49,10 +46,10 @@ messagesRouter.get(
         // clientMessageId: d.clientMessageId,
         // createdAt: d.createdAtClient,
         serverMessageId: String(d._id),
+        conversationId: (d as any).conversationId,
         fromUserId: String(d.fromUserId),
         toUserId: String(d.toUserId),
-        protoVersion: d.protoVersion ?? 1,
-        payload: d.payload ?? null,
+        protoVersion: (d.protoVersion ?? 2) as 2,
         v2: d.v2 ?? null,
         initPacket: (d as any).initPacket ?? null,
         clientMessageId: d.clientMessageId,

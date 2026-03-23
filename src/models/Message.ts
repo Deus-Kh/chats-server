@@ -1,51 +1,5 @@
-// import { Schema, model, Types, type InferSchemaType } from 'mongoose';
-
-// const EncryptedPayloadSchema = new Schema(
-//   {
-//     nonce: { type: String, required: true },      // base64
-//     ciphertext: { type: String, required: true }, // base64
-//   },
-//   { _id: false }
-// );
-
-// const MessageSchema = new Schema(
-//   {
-//     fromUserId: { type: Types.ObjectId, ref: 'User', required: true, index: true },
-//     toUserId: { type: Types.ObjectId, ref: 'User', required: true, index: true },
-
-//     payload: { type: EncryptedPayloadSchema, required: true },
-
-//     clientMessageId: { type: String, required: true },
-//     createdAtClient: { type: Number, required: true },
-
-//     deliveredAt: { type: Date, default: null },
-//     readAt: { type: Date, default: null },
-//   },
-//   { timestamps: true }
-// );
-
-// MessageSchema.index({ fromUserId: 1, toUserId: 1, clientMessageId: 1 }, { unique: true });
-// MessageSchema.index({ fromUserId: 1, toUserId: 1, createdAtClient: -1 });
-
-// export type MessageDoc = InferSchemaType<typeof MessageSchema>;
-// export const MessageModel = model('Message', MessageSchema);
-
-
-
-
-
-
-
-// ##########################################
 import { Schema, model, Types } from 'mongoose';
-
-const V1PayloadSchema = new Schema(
-  {
-    nonce: { type: String, required: true },
-    ciphertext: { type: String, required: true },
-  },
-  { _id: false }
-);
+import { makeConversationId } from '../utils/conversation';
 
 const V2Schema = new Schema(
   {
@@ -74,14 +28,11 @@ const InitPacketSchema = new Schema(
 
 const MessageSchema = new Schema(
   {
+    conversationId: { type: String, required: true, index: true },
     fromUserId: { type: Types.ObjectId, ref: 'User', required: true, index: true },
     toUserId: { type: Types.ObjectId, ref: 'User', required: true, index: true },
 
-    // v1 vs v2 selector
-    protoVersion: { type: Number, default: 1, index: true },
-
-    // v1 payload
-    payload: { type: V1PayloadSchema, default: null },
+    protoVersion: { type: Number, default: 2, index: true },
 
     // v2 payload
     v2: { type: V2Schema, default: null },
@@ -92,5 +43,13 @@ const MessageSchema = new Schema(
   },
   { timestamps: true }
 );
+
+MessageSchema.index({ conversationId: 1, createdAtClient: -1 });
+
+MessageSchema.pre('validate', function setConversationId() {
+  if (!this.conversationId && this.fromUserId && this.toUserId) {
+    this.conversationId = makeConversationId(String(this.fromUserId), String(this.toUserId));
+  }
+});
 
 export const MessageModel = model('Message', MessageSchema);

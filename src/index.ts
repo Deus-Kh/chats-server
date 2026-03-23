@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 import { config } from './config';
 
 import { authRouter } from './routes/auth.routes';
+import { conversationsRouter } from './routes/conversations.routes';
 import { usersRouter } from './routes/users.routes';
 import { setupSocket } from './socket/setupSocket';
 import { messagesRouter } from './routes/messages.routes';
@@ -23,8 +24,9 @@ async function main() {
   app.use(express.json());
 
   // routes WITHOUT /api
-  // app.use('/*',(req,res,next)=>{console.log("Request : ", req); next();})
+  // app.use('/',(req,res,next)=>{console.log("Request : ", req); next();})
   app.use('/auth', authRouter);
+  app.use('/conversations', conversationsRouter);
   app.use('/users', usersRouter);
   app.use("/keys", keysRouter);
   app.use("/messages", messagesRouter);
