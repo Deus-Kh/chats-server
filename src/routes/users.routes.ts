@@ -72,7 +72,7 @@ usersRouter.get('/', requireAuth, async (req: AuthedRequest, res) => {
   }
 
   const users = await UserModel.find(filter)
-    .select('_id username email publicKeyUpdatedAt') // publicKey не отдаём (не нужно для списка)
+    .select('_id username email identitySignUpdatedAt identityDhUpdatedAt') // Check for E2EE key setup
     .limit(limit)
     .sort({ username: 1 });
 
@@ -81,7 +81,7 @@ usersRouter.get('/', requireAuth, async (req: AuthedRequest, res) => {
       userId: String(u._id),
       username: u.username,
       email: u.email,
-      hasPublicKey: !!u.publicKeyUpdatedAt,
+      hasPublicKey: !!(u.identitySignUpdatedAt && u.identityDhUpdatedAt),
     })),
   });
 });
