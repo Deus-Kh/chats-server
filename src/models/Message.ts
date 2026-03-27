@@ -40,6 +40,16 @@ const MessageSchema = new Schema(
 
     clientMessageId: { type: String, required: true },
     createdAtClient: { type: Number, required: true, index: true },
+    
+    // Delivery metadata
+    status: {
+      type: String,
+      enum: ['sent', 'delivered', 'read', 'failed'],
+      default: 'sent',
+      index: true,
+    },
+    deliveredAt: { type: Number, default: null },
+    readAt: { type: Number, default: null },
   },
   { timestamps: true }
 );

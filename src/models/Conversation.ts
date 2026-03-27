@@ -15,6 +15,12 @@ const ConversationSchema = new Schema(
     },
     lastMessageAt: { type: Number, required: true, index: true },
     lastProtoVersion: { type: Number, required: true, default: 2 },
+    lastMessagePreview: { type: String, default: '(Message)' },
+    unreadCounts: {
+      type: Map,
+      of: Number,
+      default: new Map(),
+    },
   },
   { timestamps: true }
 );
