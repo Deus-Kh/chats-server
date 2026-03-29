@@ -55,6 +55,7 @@ const MessageSchema = new Schema(
 );
 
 MessageSchema.index({ conversationId: 1, createdAtClient: -1 });
+MessageSchema.index({ fromUserId: 1, clientMessageId: 1 }, { unique: true });
 
 MessageSchema.pre('validate', function setConversationId() {
   if (!this.conversationId && this.fromUserId && this.toUserId) {

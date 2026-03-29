@@ -318,6 +318,24 @@ export function setupSocket(io: Server) {
           return ack?.({ ok: false, error: "Invalid v2 payload" });
         }
 
+        const existingMessage = await MessageModel.findOne({
+          fromUserId: userId,
+          clientMessageId: dto.clientMessageId,
+        });
+
+        if (existingMessage) {
+          console.log('[socket] duplicate clientMessageId, returning existing message', {
+            from: userId,
+            clientMessageId: dto.clientMessageId,
+            serverMessageId: String(existingMessage._id),
+          });
+
+          return ack?.({
+            ok: true,
+            serverMessageId: String(existingMessage._id),
+          });
+        }
+
         const doc = await MessageModel.create({
           conversationId: makeConversationId(userId, dto.toUserId),
           fromUserId: userId,
@@ -446,6 +464,30 @@ export function setupSocket(io: Server) {
 
         return ack?.({ ok: true, serverMessageId: String(doc._id) });
       } catch (e: any) {
+        if (e?.code === 11000) {
+          try {
+            const existingMessage = await MessageModel.findOne({
+              fromUserId: userId,
+              clientMessageId: dto.clientMessageId,
+            });
+
+            if (existingMessage) {
+              console.warn('[socket] duplicate key hit, returning existing message', {
+                from: userId,
+                clientMessageId: dto.clientMessageId,
+                serverMessageId: String(existingMessage._id),
+              });
+
+              return ack?.({
+                ok: true,
+                serverMessageId: String(existingMessage._id),
+              });
+            }
+          } catch (lookupError) {
+            console.error('[socket] duplicate recovery lookup failed:', lookupError);
+          }
+        }
+
         console.error("message:send failed:", e);
         return ack?.({ ok: false, error: e?.message || "Server error" });
       }
@@ -488,6 +530,8 @@ export function setupSocket(io: Server) {
           io.to(senderUserId).emit('message:status-changed', {
             conversationId,
             status: 'delivered',
+            serverMessageId,
+            deliveredAt: (doc as any).deliveredAt ?? Date.now(),
             deliveredByUserId: userId,
           });
         }
@@ -503,6 +547,7 @@ export function setupSocket(io: Server) {
     socket.on('message:read', async (dto: { conversationId: string }, ack?: (r: any) => void) => {
       try {
         const conversationId = String(dto.conversationId);
+        const readAt = Date.now();
         
         console.log('[socket] message:read event received:', { from: userId, conversationId });
 
@@ -516,7 +561,7 @@ export function setupSocket(io: Server) {
           {
             $set: {
               status: 'read',
-              readAt: Date.now(),
+              readAt,
             },
           }
         );
@@ -552,6 +597,7 @@ export function setupSocket(io: Server) {
           io.to(otherUserId).emit('message:status-changed', {
             conversationId,
             status: 'read',
+            readAt,
             readerUserId: userId,
           });
         }
