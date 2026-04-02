@@ -248,6 +248,25 @@ function isValidObjectIdString(v: unknown): v is string {
   return typeof v === "string" && /^[a-fA-F0-9]{24}$/.test(v);
 }
 
+const onlineConnectionCounts = new Map<string, number>();
+const lastSeenByUserId = new Map<string, number>();
+
+function isUserOnline(userId: string) {
+  return (onlineConnectionCounts.get(userId) ?? 0) > 0;
+}
+
+function getPresencePayload(userId: string) {
+  return {
+    userId,
+    online: isUserOnline(userId),
+    lastSeenAt: lastSeenByUserId.get(userId) ?? null,
+  };
+}
+
+function emitPresence(io: Server, userId: string) {
+  io.to(`presence:${userId}`).emit("presence:update", getPresencePayload(userId));
+}
+
 export function setupSocket(io: Server) {
   io.use((socket, next) => {
     try {
@@ -265,7 +284,54 @@ export function setupSocket(io: Server) {
   io.on("connection", (socket) => {
     const userId = String(socket.data.userId);
     socket.join(userId); // room per userId
+    onlineConnectionCounts.set(userId, (onlineConnectionCounts.get(userId) ?? 0) + 1);
+    emitPresence(io, userId);
     console.log('[socket] join room', userId, 'socket', socket.id);
+
+    socket.on("presence:subscribe", (dto: { peerUserId?: string | null }) => {
+      const peerUserId = String(dto?.peerUserId ?? "");
+      if (!isValidObjectIdString(peerUserId)) return;
+
+      socket.join(`presence:${peerUserId}`);
+      socket.emit("presence:update", getPresencePayload(peerUserId));
+    });
+
+    socket.on("presence:unsubscribe", (dto: { peerUserId?: string | null }) => {
+      const peerUserId = String(dto?.peerUserId ?? "");
+      if (!isValidObjectIdString(peerUserId)) return;
+
+      socket.leave(`presence:${peerUserId}`);
+    });
+
+    socket.on(
+      "typing:start",
+      (dto: { toUserId?: string | null; conversationId?: string | null }) => {
+        const toUserId = String(dto?.toUserId ?? "");
+        const conversationId = String(dto?.conversationId ?? "");
+        if (!isValidObjectIdString(toUserId) || !conversationId) return;
+
+        io.to(toUserId).emit("typing:update", {
+          fromUserId: userId,
+          conversationId,
+          isTyping: true,
+        });
+      }
+    );
+
+    socket.on(
+      "typing:stop",
+      (dto: { toUserId?: string | null; conversationId?: string | null }) => {
+        const toUserId = String(dto?.toUserId ?? "");
+        const conversationId = String(dto?.conversationId ?? "");
+        if (!isValidObjectIdString(toUserId) || !conversationId) return;
+
+        io.to(toUserId).emit("typing:update", {
+          fromUserId: userId,
+          conversationId,
+          isTyping: false,
+        });
+      }
+    );
 
     socket.on("message:send", async (dto: SendMessageDTO, ack?: (r: any) => void) => {
       try {
@@ -614,6 +680,19 @@ export function setupSocket(io: Server) {
         console.error('message:read failed:', e);
         return ack?.({ ok: false, error: e?.message });
       }
+    });
+
+    socket.on("disconnect", () => {
+      const nextCount = Math.max(0, (onlineConnectionCounts.get(userId) ?? 1) - 1);
+
+      if (nextCount === 0) {
+        onlineConnectionCounts.delete(userId);
+        lastSeenByUserId.set(userId, Date.now());
+      } else {
+        onlineConnectionCounts.set(userId, nextCount);
+      }
+
+      emitPresence(io, userId);
     });
   });
 }
