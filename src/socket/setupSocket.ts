@@ -227,6 +227,10 @@ type SendMessageDTO = {
   createdAt: number;
   protoVersion?: 2;
   v2?: V2Payload | null; // v2
+  replyTo?: {
+    serverMessageId?: string | null;
+    clientMessageId?: string | null;
+  } | null;
   initPacket?: {
     peerUserId: string;
     ephPublicKey: string;
@@ -342,6 +346,7 @@ export function setupSocket(io: Server) {
           toUserId: dto.toUserId,
           protoVersion,
           v2,
+          replyTo: dto.replyTo ?? null,
           initPacket: dto.initPacket ?? null,
           clientMessageId: dto.clientMessageId,
           createdAtClient: dto.createdAt,
@@ -430,6 +435,7 @@ export function setupSocket(io: Server) {
           toUserId: String(dto.toUserId),
           protoVersion,
           v2: doc.v2,
+          replyTo: (doc as any).replyTo ?? null,
           initPacket: initPacketToSend,
           clientMessageId: dto.clientMessageId,
           createdAt: dto.createdAt,
@@ -453,6 +459,7 @@ export function setupSocket(io: Server) {
           toUserId: String(dto.toUserId),
           protoVersion,
           v2: doc.v2,
+          replyTo: (doc as any).replyTo ?? null,
           initPacket: initPacketToSend,
           clientMessageId: dto.clientMessageId,
           createdAt: dto.createdAt,

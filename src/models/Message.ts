@@ -26,6 +26,14 @@ const InitPacketSchema = new Schema(
   { _id: false }
 );
 
+const ReplyToSchema = new Schema(
+  {
+    serverMessageId: { type: String, default: null },
+    clientMessageId: { type: String, default: null },
+  },
+  { _id: false }
+);
+
 const MessageSchema = new Schema(
   {
     conversationId: { type: String, required: true, index: true },
@@ -37,6 +45,7 @@ const MessageSchema = new Schema(
     // v2 payload
     v2: { type: V2Schema, default: null },
     initPacket: { type: InitPacketSchema, default: null },
+    replyTo: { type: ReplyToSchema, default: null },
 
     clientMessageId: { type: String, required: true },
     createdAtClient: { type: Number, required: true, index: true },

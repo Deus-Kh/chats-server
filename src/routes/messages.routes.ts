@@ -32,7 +32,7 @@ messagesRouter.get(
     }
 
     const docs = await MessageModel.find(baseFilter)
-      .select("_id conversationId fromUserId toUserId protoVersion v2 initPacket clientMessageId createdAtClient status deliveredAt readAt")
+      .select("_id conversationId fromUserId toUserId protoVersion v2 initPacket replyTo clientMessageId createdAtClient status deliveredAt readAt")
       .sort({ createdAtClient: -1 })
       .limit(limit);
 
@@ -46,6 +46,7 @@ messagesRouter.get(
         protoVersion: (d.protoVersion ?? 2) as 2,
         v2: d.v2 ?? null,
         initPacket: (d as any).initPacket ?? null,
+        replyTo: (d as any).replyTo ?? null,
         clientMessageId: d.clientMessageId,
         createdAt: d.createdAtClient,
         status: (d as any).status ?? 'sent',
