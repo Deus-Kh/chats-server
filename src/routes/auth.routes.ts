@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { UserModel } from "../models/User";
 import { config } from "../config";
+import { requireAuth, type AuthedRequest } from "../middleware/auth";
 
 export const authRouter = Router();
 
@@ -60,4 +61,30 @@ authRouter.post("/login", async (req, res) => {
   );
 
   return res.json({ accessToken, userId: String(user._id) });
+});
+
+authRouter.post("/change-password", requireAuth, async (req: AuthedRequest, res) => {
+  const { currentPassword, newPassword } = req.body as {
+    currentPassword?: string;
+    newPassword?: string;
+  };
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: "currentPassword and newPassword are required" });
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: "New password must be at least 8 characters" });
+  }
+
+  const user = await UserModel.findById(req.userId);
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!ok) return res.status(401).json({ error: "Current password is incorrect" });
+
+  user.passwordHash = await bcrypt.hash(newPassword, config.BCRYPT_ROUNDS);
+  await user.save();
+
+  return res.json({ ok: true });
 });

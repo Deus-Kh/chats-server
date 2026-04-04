@@ -57,6 +57,62 @@ usersRouter.get("/me", requireAuth, async (req: AuthedRequest, res) => {
   });
 });
 
+usersRouter.patch("/me", requireAuth, async (req: AuthedRequest, res) => {
+  const { email, username } = req.body as { email?: string; username?: string };
+
+  const nextEmail = String(email || "").trim().toLowerCase();
+  const nextUsername = String(username || "").trim();
+
+  if (!nextEmail || !nextUsername) {
+    return res.status(400).json({ error: "email and username are required" });
+  }
+
+  if (nextUsername.length < 3 || nextUsername.length > 32) {
+    return res.status(400).json({ error: "Username must be between 3 and 32 characters" });
+  }
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(nextEmail)) {
+    return res.status(400).json({ error: "Invalid email format" });
+  }
+
+  const existingEmail = await UserModel.findOne({
+    email: nextEmail,
+    _id: { $ne: req.userId },
+  }).select("_id");
+  if (existingEmail) {
+    return res.status(409).json({ error: "Email already in use" });
+  }
+
+  const existingUsername = await UserModel.findOne({
+    username: nextUsername,
+    _id: { $ne: req.userId },
+  }).select("_id");
+  if (existingUsername) {
+    return res.status(409).json({ error: "Username already in use" });
+  }
+
+  const user = await UserModel.findByIdAndUpdate(
+    req.userId,
+    {
+      $set: {
+        email: nextEmail,
+        username: nextUsername,
+      },
+    },
+    { new: true },
+  ).select("email username publicKey");
+
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  return res.json({
+    userId: String(user._id),
+    email: user.email,
+    username: user.username,
+    publicKey: user.publicKey,
+  });
+});
+
 // GET /users  (JWT) — список пользователей (без пароля)
 usersRouter.get('/', requireAuth, async (req: AuthedRequest, res) => {
   const q = String(req.query.q || '').trim(); // search by username/email
