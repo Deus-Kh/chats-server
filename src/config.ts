@@ -8,4 +8,7 @@ export const config = {
   JWT_ALGORITHM:"HS256",
   JWT_MAX_AGE:"10800s",
   BCRYPT_ROUNDS: Number(process.env.BCRYPT_ROUNDS || 10),
+  FIREBASE_SERVICE_ACCOUNT_PATH:
+    process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
+    'velo-deus-firebase-adminsdk-fbsvc-d6096986a9.json',
 };

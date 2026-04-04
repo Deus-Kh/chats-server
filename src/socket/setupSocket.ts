@@ -207,6 +207,7 @@ import jwt from "jsonwebtoken";
 import { config } from "../config";
 import { ConversationModel } from "../models/Conversation";
 import { MessageModel } from "../models/Message";
+import { sendMessagePushToUser } from "../push/firebase";
 import { makeConversationId } from "../utils/conversation";
 
 type V2Header = {
@@ -534,6 +535,15 @@ export function setupSocket(io: Server) {
           readAt: (doc as any).readAt ?? null,
           unreadCount: senderUnreadCount, // Sender's actual unread count from peer
         });
+
+        if (!isUserOnline(String(dto.toUserId))) {
+          await sendMessagePushToUser({
+            toUserId: String(dto.toUserId),
+            fromUserId: String(userId),
+            conversationId: String((doc as any).conversationId),
+            serverMessageId: String(doc._id),
+          });
+        }
 
         return ack?.({ ok: true, serverMessageId: String(doc._id) });
       } catch (e: any) {

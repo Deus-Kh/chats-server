@@ -113,6 +113,62 @@ usersRouter.patch("/me", requireAuth, async (req: AuthedRequest, res) => {
   });
 });
 
+usersRouter.post("/me/push-token", requireAuth, async (req: AuthedRequest, res) => {
+  const token = String(req.body?.token || "").trim();
+  const platform = String(req.body?.platform || "").trim().toLowerCase();
+
+  if (!token) {
+    return res.status(400).json({ error: "token is required" });
+  }
+
+  if (platform !== "android" && platform !== "ios") {
+    return res.status(400).json({ error: "platform must be android or ios" });
+  }
+
+  await UserModel.updateOne(
+    { _id: req.userId },
+    {
+      $pull: {
+        pushTokens: { token },
+      },
+    },
+  );
+
+  await UserModel.updateOne(
+    { _id: req.userId },
+    {
+      $push: {
+        pushTokens: {
+          token,
+          platform,
+          updatedAt: new Date(),
+        },
+      },
+    },
+  );
+
+  return res.json({ ok: true });
+});
+
+usersRouter.delete("/me/push-token", requireAuth, async (req: AuthedRequest, res) => {
+  const token = String(req.body?.token || req.query?.token || "").trim();
+
+  if (!token) {
+    return res.status(400).json({ error: "token is required" });
+  }
+
+  await UserModel.updateOne(
+    { _id: req.userId },
+    {
+      $pull: {
+        pushTokens: { token },
+      },
+    },
+  );
+
+  return res.json({ ok: true });
+});
+
 // GET /users  (JWT) — список пользователей (без пароля)
 usersRouter.get('/', requireAuth, async (req: AuthedRequest, res) => {
   const q = String(req.query.q || '').trim(); // search by username/email

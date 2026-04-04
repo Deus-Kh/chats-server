@@ -7,7 +7,7 @@
   "type": "commonjs",
   "main": "index.ts",
   "scripts": {
-    "start":"nodemon src/index.ts",
+    "start": "nodemon src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
@@ -15,6 +15,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "firebase-admin": "^13.7.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.5",
@@ -29,8 +30,10 @@
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
   },
-  "nodemonConfig":{
-    "watch":["src"],
+  "nodemonConfig": {
+    "watch": [
+      "src"
+    ],
     "ext": "ts"
   }
 }

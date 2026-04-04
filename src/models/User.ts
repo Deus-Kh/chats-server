@@ -16,6 +16,17 @@ const UserSchema = new Schema(
     identityDhPublicKey: { type: String, default: null, index: true },
     identityDhUpdatedAt: { type: Date, default: null },
 
+    pushTokens: {
+      type: [
+        {
+          token: { type: String, required: true },
+          platform: { type: String, enum: ["android", "ios"], required: true },
+          updatedAt: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
+
 
   },
   { timestamps: true }
